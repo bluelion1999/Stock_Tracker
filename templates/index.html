@@ -8,7 +8,16 @@
     </head>
     <body>
         <h1>Stock Tracker</h1>
-
+            <!-- Flash messages for errors/success -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
         <!-- Input section-->
         <div class="input-section">

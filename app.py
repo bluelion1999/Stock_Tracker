@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 import yfinance as yf
 
 # Create Flask app instance
@@ -6,6 +6,8 @@ app = Flask(__name__)
 
 # Store stocks in memory
 stocks = []     
+
+app.secret_key = 'your-secret-key-for-flash-messages'
 
 def get_stock_data(symbol):
     """ Get real data from YF"""
@@ -43,22 +45,26 @@ def index():
 
 @app.route('/add_stock', methods=['POST'])
 def add_stock():
-    """Add a new stock to the watchlist"""
-    # Get the stock symbol from the form
     symbol = request.form.get('symbol', '').upper().strip()
-    # input validation for empty
+    
     if not symbol:
-        return redirect(url_for('index'))
-    # ignore and refresh if stock already there
-    if symbol in [stock['symbol'] for stock in stocks]:
+        flash("Please enter a stock symbol", 'error')
         return redirect(url_for('index'))
     
-    stock_data = get_stock_data(symbol = symbol)
+    # Check if already exists
+    if symbol in [stock['symbol'] for stock in stocks]:
+        flash(f"'{symbol}' is already in your watchlist", 'warning')
+        return redirect(url_for('index'))
+    
+    # Get real stock data
+    stock_data = get_stock_data(symbol)
     
     if stock_data['valid']:
         stocks.append(stock_data)
-
-    # Redirect back to main page
+        flash(f"'{symbol}' added successfully!", 'success')
+    else:
+        flash(f"Error: {stock_data['error']}", 'error')
+    
     return redirect(url_for('index'))
 
 @app.route('/remove_stock/<symbol>')
