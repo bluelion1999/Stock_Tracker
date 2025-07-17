@@ -46,17 +46,18 @@ def add_stock():
     """Add a new stock to the watchlist"""
     # Get the stock symbol from the form
     symbol = request.form.get('symbol', '').upper().strip()
+    # input validation for empty
+    if not symbol:
+        return redirect(url_for('index'))
+    # ignore and refresh if stock already there
+    if symbol in [stock['symbol'] for stock in stocks]:
+        return redirect(url_for('index'))
     
-    # Check if symbol is not empty and not already in list
-    if symbol and symbol not in [stock['symbol'] for stock in stocks]:
-        # Create stock data (we'll add real API data later)
-        stock_data = {
-            'symbol': symbol, 
-            'price': '0.00', 
-            'change': '+0.00'
-        }
+    stock_data = get_stock_data(symbol = symbol)
+    
+    if stock_data['valid']:
         stocks.append(stock_data)
-    
+
     # Redirect back to main page
     return redirect(url_for('index'))
 
