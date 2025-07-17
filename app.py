@@ -41,6 +41,19 @@ def get_stock_data(symbol):
 @app.route('/')
 def index():
     """Main page - shows the stock tracker"""
+    global stocks
+    
+    # Auto-refresh stock data if we have stocks
+    if stocks:
+        updated_stocks = []
+        for stock in stocks:
+            fresh_data = get_stock_data(stock['symbol'])
+            if fresh_data['valid']:
+                updated_stocks.append(fresh_data)
+            else:
+                updated_stocks.append(stock)  # Keep old data if API fails
+        stocks = updated_stocks
+    
     return render_template('index.html', stocks=stocks)
 
 @app.route('/add_stock', methods=['POST'])
