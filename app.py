@@ -33,6 +33,7 @@ def get_stock_data(symbol):
             return {'valid': False, 'error': 'Could not fetch price data'}
     except Exception as e:
         return {'valid': False, 'error': f'Invalid symbol or API error: {str(e)}'}
+    
 
 
 @app.route('/')
