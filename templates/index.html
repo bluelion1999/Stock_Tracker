@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>My Stock Tracker</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+        {% if stocks %}
+            <meta http-equiv="refresh" content="30">
+        {% endif %}
     </head>
     <body>
         <h1>Stock Tracker</h1>
