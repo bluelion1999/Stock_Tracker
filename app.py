@@ -1,13 +1,37 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import yfinance as yf
+import json
+import os
 
 # Create Flask app instance
 app = Flask(__name__)
 
-# Store stocks in memory
-stocks = []     
+# Store stocks in memory    
 
 app.secret_key = 'your-secret-key-for-flash-messages'
+
+STOCKS_FILE = 'stocks.json'
+
+def load_stocks():
+    if os.path.exists(STOCKS_FILE):
+        try:
+            with open(STOCKS_FILE, 'r') as f:
+                return json.load(f)
+            
+        except:
+            return []
+    return []
+
+def save_stocks(stocks_data):
+    """Save stocks to file"""
+    try:
+        with open(STOCKS_FILE, 'w') as f:
+            json.dump(stocks_data, f, indent=2)
+    except Exception as e:
+        print(f"Error saving stocks: {e}")
+        
+
+stocks = load_stocks()
 
 def get_stock_data(symbol):
     """ Get real data from YF"""
