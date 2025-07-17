@@ -26,6 +26,12 @@
                 <button type="submit">Add Stock</button>
             </form>
         </div>
+                    <!-- Refresh section -->
+        {% if stocks %}
+        <div class="refresh-section">
+            <a href="/refresh_prices" class="refresh-btn">🔄 Refresh Prices</a>
+        </div>
+        {% endif %}
 
         <!-- Where Stocks will appear-->
         <div id="stockList">
@@ -43,6 +49,7 @@
                             <span class="price-neutral">{{ stock.price }}</span>
                             <span class="price-neutral">{{ stock.change }}</span>
                         {% endif %}
+                        <a href="/remove/{{ stock.symbol }}" class="remove-btn">x</a>
                     </div>
                 {% endfor %}
             {% else %}
