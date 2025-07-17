@@ -72,8 +72,32 @@ def remove_stock(symbol):
     """Remove a stock from the watchlist"""
     global stocks
     stocks = [stock for stock in stocks if stock['symbol'] != symbol]
+    flash(f"'{symbol}' removed from watchlist", 'info')
     return redirect(url_for('index'))
+
+@app.route('/refresh_prices')
+def refresh_prices():
+    """Refreshes all stock prices"""
+    global stocks
+    updated_stocks = []
+    
+    for stock in stocks:
+        fresh_data = get_stock_data(stock['symbol'])
+        
+        if fresh_data['valid']:
+            updated_stocks.append(fresh_data)
+        
+        else:
+            updated_stocks.append(stock) 
+            flash(f"Could not refresh {stocks['symbol']}", 'warning')
+            
+    stocks = updated_stocks   
+    flash("Stock prices refreshed!", 'success')
+
+    return redirect(url_for('index'))
+
 
 # Run the app
 if __name__ == '__main__':
     app.run(debug=True)
+    
