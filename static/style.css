@@ -1,0 +1,86 @@
+body {
+    font-family: Arial, sans-serif; /* What font I am using */
+    max-width: 800px; /* Dont get wider than 800 px */
+    margin: 0 auto; /* Center the content */
+    padding: 20px; /* Space around the edges */
+    background-color: #f5f5f5; /* Light gray background */
+    }
+
+h1 {
+    text-align: center;  /* Centers the title for MAIN header */
+    color: #333; /* Dark gray text */
+    margin-bottom: 30px; /* 30px of space below title */
+}
+
+.input-section {
+    margin: 20px 0; /* Space above and below */
+    text-align: center; /*everything in the section is centered*/
+    background-color: white; /*White background*/
+    padding: 20px; /* Space inside box*/
+    border-radius: 8px; /*add rounded corners to the box */
+    box-shadow: 0 2px 4px rgba(0,0,0,.1) /*adds a subtle shadow */
+}
+
+input[type="text"] {
+    padding: 12px; /*Space inside the input box*/
+    font-size: 16px; /*Text Size in input*/
+    border: 2px solid #ddd; /*Adds a grey border*/
+    border-radius: 4px; /*round the corners*/
+    border-right: 10px; /*Space to the right of the box*/
+    width: 200px; /*Fixed width*/
+}
+
+input[type="text"]:focus { /*This is a psuedoclass :focus makes it so this only applies when clicked*/
+    border-color: #007bff; /*Blue border when clicked*/
+    outline: none; /*removes default*/
+}
+
+button {
+    padding: 12px 20px;  /* Space inside button */
+    font-size: 16px;  /* Text size */
+    background-color: #007bff;    /* Blue background */
+    color: white;  /* White text */
+    border: none;  /* Remove default border */
+    border-radius: 4px; /* Rounded corners */
+    cursor: pointer;  /* Show hand cursor on hover */
+}
+
+button:hover { /*Similar pseudoclass to :focus only applies when cursor is over button*/
+    background-color: #0056b3;   /* Darker blue on hover */
+}
+
+#stockList { /*# is for an Id*/
+    margin-top: 30px;                   
+    background-color: white;            
+    border-radius: 8px;                 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);  
+    overflow: hidden;  /* Keep content inside rounded corners */
+
+
+}
+
+.stock-item {
+    display: flex; /* Make items line up horizontally */
+    justify-content: space-between;   /* Spread items apart */
+    align-items: center;                
+    padding: 15px 20px;                 
+    border-bottom: 1px solid #eee;  /* Line between stocks */
+}
+
+.stock-item:last-child { /*Another pseudo-class to just adjust last item*/
+    border-bottom: none;   /* Remove line from last item */
+}
+
+.stock-item span:first-child {
+    font-weight: bold;    /* Make stock symbol bold */
+    color: #333;     /* Dark gray */
+}
+
+.stock-item span:nth-child(2) {
+    font-size: 18px;       /* Bigger text for price */
+    color: #28a745;      /* Green color */
+}
+
+.stock-item span:last-child {
+    color: #28a745;  /* Green for change */
+}
