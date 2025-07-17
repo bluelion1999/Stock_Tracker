@@ -98,7 +98,9 @@ def add_stock():
     
     if stock_data['valid']:
         stocks.append(stock_data)
+        save_stocks(stocks)
         flash(f"'{symbol}' added successfully!", 'success')
+        
     else:
         flash(f"Error: {stock_data['error']}", 'error')
     
@@ -109,6 +111,7 @@ def remove_stock(symbol):
     """Remove a stock from the watchlist"""
     global stocks
     stocks = [stock for stock in stocks if stock['symbol'] != symbol]
+    save_stocks(stocks)
     flash(f"'{symbol}' removed from watchlist", 'info')
     return redirect(url_for('index'))
 
@@ -128,7 +131,8 @@ def refresh_prices():
             updated_stocks.append(stock) 
             flash(f"Could not refresh {stocks['symbol']}", 'warning')
             
-    stocks = updated_stocks   
+    stocks = updated_stocks
+    save_stocks(stocks)   
     flash("Stock prices refreshed!", 'success')
 
     return redirect(url_for('index'))
