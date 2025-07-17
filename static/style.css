@@ -84,3 +84,10 @@ button:hover { /*Similar pseudoclass to :focus only applies when cursor is over 
 .stock-item span:last-child {
     color: #28a745;  /* Green for change */
 }
+
+#stockList p {
+    text-align: center;     /* Center the "no stocks" message */
+    padding: 40px;        /* Lots of space around it */
+    color: #666;       /* Gray text */
+    font-style: italic;   
+}
