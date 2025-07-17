@@ -1,11 +1,39 @@
 from flask import Flask, render_template, request, redirect, url_for
-
+import yfinance as yf
 
 # Create Flask app instance
 app = Flask(__name__)
 
 # Store stocks in memory
 stocks = []     
+
+def get_stock_data(symbol):
+    """ Get real data from YF"""
+    try:
+        stock = yf.Ticker(symbol)
+        info = stock.info
+        
+        #Get Curr Price
+        current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+        
+        #Get prev Close
+        previous_close = info.get('previousClose')
+        
+        if current_price and previous_close:
+            change = current_price - previous_close
+            change_percent = (change / previous_close) * 100
+
+            return {
+                'symbol' : symbol,
+                'price' : f"{current_price:.2f}",
+                'change' : f"{change:+.2f} ({change_percent:+.1f}%)",
+                'valid' : True   
+            }
+        else:
+            return {'valid': False, 'error': 'Could not fetch price data'}
+    except Exception as e:
+        return {'valid': False, 'error': f'Invalid symbol or API error: {str(e)}'}
+
 
 @app.route('/')
 def index():
