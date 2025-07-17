@@ -76,13 +76,26 @@ button:hover { /*Similar pseudoclass to :focus only applies when cursor is over 
     color: #333;     /* Dark gray */
 }
 
+/* Add these new styles for price changes */
+.price-positive {
+    color: #28a745; /* Green for positive */
+}
+
+.price-negative {
+    color: #dc3545; /* Red for negative */
+}
+
+.price-neutral {
+    color: #6c757d; /* Gray for no change */
+}
+
 .stock-item span:nth-child(2) {
-    font-size: 18px;       /* Bigger text for price */
-    color: #28a745;      /* Green color */
+    font-size: 18px;
+    font-weight: bold;
 }
 
 .stock-item span:last-child {
-    color: #28a745;  /* Green for change */
+    font-weight: bold;
 }
 
 #stockList p {

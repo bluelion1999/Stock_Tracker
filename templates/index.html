@@ -33,8 +33,16 @@
                 {% for stock in stocks %}
                     <div class="stock-item">
                         <span>{{ stock.symbol }}</span>
-                        <span>{{ stock.price }}</span>
-                        <span>{{ stock.change }}</span>
+                        {% if stock.change.startswith('+') %}
+                            <span class="price-positive">{{ stock.price }}</span>
+                            <span class="price-positive">{{ stock.change }}</span>
+                        {% elif stock.change.startswith('-') %}
+                            <span class="price-negative">{{ stock.price }}</span>
+                            <span class="price-negative">{{ stock.change }}</span>
+                        {% else %}
+                            <span class="price-neutral">{{ stock.price }}</span>
+                            <span class="price-neutral">{{ stock.change }}</span>
+                        {% endif %}
                     </div>
                 {% endfor %}
             {% else %}
