@@ -13,20 +13,39 @@ app.secret_key = 'your-secret-key-for-flash-messages'
 STOCKS_FILE = 'stocks.json'
 
 def load_stocks():
+    """Load stock symbols from file and fetch fresh data"""
+    symbols = []
     if os.path.exists(STOCKS_FILE):
         try:
             with open(STOCKS_FILE, 'r') as f:
-                return json.load(f)
-            
+                symbols = json.load(f)
         except:
             return []
-    return []
+    
+    # Fetch fresh data for each symbol
+    stocks_data = []
+    for symbol in symbols:
+        stock_data = get_stock_data(symbol)
+        if stock_data['valid']:
+            stocks_data.append(stock_data)
+        else:
+            # Keep symbol even if API fails temporarily
+            stocks_data.append({
+                'symbol': symbol,
+                'price': 'Error',
+                'change': 'Error',
+                'valid': False
+            })
+    
+    return stocks_data
 
 def save_stocks(stocks_data):
-    """Save stocks to file"""
+    """Save only stock symbols to file"""
     try:
+        # Extract just the symbols
+        symbols = [stock['symbol'] for stock in stocks_data]
         with open(STOCKS_FILE, 'w') as f:
-            json.dump(stocks_data, f, indent=2)
+            json.dump(symbols, f, indent=2)
     except Exception as e:
         print(f"Error saving stocks: {e}")
         
