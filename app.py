@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for
-import requests
+
 
 # Create Flask app instance
 app = Flask(__name__)
 
-# Store stocks in memory for now (like a simple list in Python)
-stocks = []
+# Store stocks in memory
+stocks = []     
 
 @app.route('/')
 def index():
