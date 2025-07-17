@@ -50,8 +50,6 @@ def save_stocks(stocks_data):
         print(f"Error saving stocks: {e}")
         
 
-stocks = load_stocks()
-
 def get_stock_data(symbol):
     """ Get real data from YF"""
     try:
@@ -79,7 +77,45 @@ def get_stock_data(symbol):
     except Exception as e:
         return {'valid': False, 'error': f'Invalid symbol or API error: {str(e)}'}
     
+    
+def load_stocks():
+    """Load stock symbols from file and fetch fresh data"""
+    symbols = []
+    if os.path.exists(STOCKS_FILE):
+        try:
+            with open(STOCKS_FILE, 'r') as f:
+                symbols = json.load(f)
+        except:
+            return []
+    
+    # Fetch fresh data for each symbol
+    stocks_data = []
+    for symbol in symbols:
+        stock_data = get_stock_data(symbol)
+        if stock_data['valid']:
+            stocks_data.append(stock_data)
+        else:
+            # Keep symbol even if API fails temporarily
+            stocks_data.append({
+                'symbol': symbol,
+                'price': 'Error',
+                'change': 'Error',
+                'valid': False
+            })
+    
+    return stocks_data
 
+def save_stocks(stocks_data):
+    """Save only stock symbols to file"""
+    try:
+        # Extract just the symbols
+        symbols = [stock['symbol'] for stock in stocks_data]
+        with open(STOCKS_FILE, 'w') as f:
+            json.dump(symbols, f, indent=2)
+    except Exception as e:
+        print(f"Error saving stocks: {e}")
+    
+stocks = load_stocks()
 
 @app.route('/')
 def index():
