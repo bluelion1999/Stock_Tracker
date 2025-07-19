@@ -122,7 +122,28 @@ class SimpleMLPredictor:
         rs = gain/loss 
         data['RSI'] = 100 - (100 / (1 + rs))
         
-        print("Technical indicators calculated")
+        #Adding Vol measure (Bollinger bands) lmao this is just 95% conf band why not just call it what it is
+        data['BB_Middle'] = data['Close'].rolling(window=20).mean()
+        bb_std = data['Close'].rolling(window=20).std()
+        data['BB_Upper'] = data['BB_Middle'] + (bb_std * 2)
+        data['BB_Lower'] = data['BB_Middle'] - (bb_std * 2) 
+        #Transform applied to get relative position in the band if 0 @ lower band if 1 @ upper band 
+        data['BB_Position'] = (data['Close'] - data['BB_Lower']) / (data['BB_Upper'] - data['BB_Upper'])
+        
+        #Momentum (% change over certain periods of time)
+        data['Momentum_1M'] = data['Close'].pct_change(20)
+        data['Momentum_3M'] = data['Close'].pct_change(60)
+        data['Momentum_6M'] = data['Close'].pct_change(120)
+        
+        #Vol
+        data['Volatility_20d'] = data['Close'].pct_change().rolling(window=20).std()
+        
+        #Volume
+        data['Volume_SMA'] = data['Volume'].rolling(window=20).mean()
+        data['Volume_Ratio'] = data['Volume'] / data['Volume_SMA']
+        
+        
+        print("All technical indicators calculated successfully")
         return data
     
     ############ debug #################
@@ -130,24 +151,40 @@ class SimpleMLPredictor:
         """ Test the calculations"""
         try:
             stock = yf.Ticker(symbol)
-            hist_data = stock.history(period='6mo')
+            hist_data = stock.history(period='1yr')
             
             
-            if len(hist_data) < 50:
+            if len(hist_data) < 150:
                 return f"Not enough data for {symbol}"
             
             hist_data = self.calculate_technical_indicators(hist_data)
             
             latest = hist_data.iloc[-1]
             
-            result = {
-                'symbol': symbol,
-                'price': latest['Close'],
-                'sma_20': latest['SMA_20'],
-                'sma_50': latest['SMA_50'],
-                'price_to_sma20': latest['Price_to_SMA20'],
-                'price_to_sma50': latest['Price_to_SMA50'],
-                'rsi': latest['RSI']
+            result = {'symbol': symbol,
+            'current_price': round(latest['Close'], 2),
+            
+            # Trend indicators
+            'sma_20': round(latest['SMA_20'], 2),
+            'sma_50': round(latest['SMA_50'], 2),
+            'price_to_sma20': round(latest['Price_to_SMA20'], 3),
+            'price_to_sma50': round(latest['Price_to_SMA50'], 3),
+            
+            # Momentum
+            'rsi': round(latest['RSI'], 1),
+            'momentum_1m_pct': round(latest['Momentum_1M'] * 100, 1),
+            'momentum_3m_pct': round(latest['Momentum_3M'] * 100, 1),
+            'momentum_6m_pct': round(latest['Momentum_6M'] * 100, 1),
+            
+            # Volatility
+            'bb_position': round(latest['BB_Position'], 3),
+            'volatility_20d': round(latest['Volatility_20d'], 4),
+            
+            # Volume
+            'volume_ratio': round(latest['Volume_Ratio'], 2),
+            
+            # Analysis
+            'analysis': self._analyze_indicators(latest)
             }
             
             return result
@@ -155,6 +192,43 @@ class SimpleMLPredictor:
         except Exception as e:
             return f"Error: {e}"
         
+    def _analyze_indicators(self, latest_data):
+        """Create some insight from the indicators"""
+        analysis = []
+        
+        if latest_data['Price_to_SMA20'] > 1.05:
+            analysis.append("Strong uptrend (price 5%+ above 20-day average)")
+        elif latest_data['Price_to_SMA20'] < 0.95:
+            analysis.append("Strong downtrend (price 5%+ below 20-day average)")
+        else:
+            analysis.append("Sideways trend (price near 20-day average)")
+            
+        if latest_data['RSI'] > 70:
+            analysis.append("Overbought territory (RSI > 70)")
+        elif latest_data['RSI'] < 30:
+            analysis.append("Oversold territory (RSI < 30)")
+        else:
+            analysis.append(f"Neutral momentum (RSI: {latest_data['RSI']:.1f})")
+            
+        if latest_data['BB_Position'] > 0.8:
+            analysis.append("Near upper Bollinger Band (high volatility)")
+        elif latest_data['BB_Position'] < 0.2:
+            analysis.append("Near lower Bollinger Band (potential bounce)")
+        else:
+            analysis.append("Within normal Bollinger Band range")
+            
+        if latest_data['Momentum_1M'] > 0.1:
+            analysis.append("Strong 1-month momentum (+10%+)")
+        elif latest_data['Momentum_1M'] < -0.1:
+            analysis.append("Weak 1-month momentum (-10%+)")
+            
+        if latest_data['Volume_Ratio'] > 1.5:
+            analysis.append("High volume (50%+ above average)")
+        elif latest_data['Volume_Ratio'] < 0.5:
+            analysis.append("Low volume (50%+ below average)")
+            
+            
+        return analysis
 stocks = load_stocks()
 ml_predictor = SimpleMLPredictor()
 
