@@ -128,7 +128,7 @@ class SimpleMLPredictor:
         data['BB_Upper'] = data['BB_Middle'] + (bb_std * 2)
         data['BB_Lower'] = data['BB_Middle'] - (bb_std * 2) 
         #Transform applied to get relative position in the band if 0 @ lower band if 1 @ upper band 
-        data['BB_Position'] = (data['Close'] - data['BB_Lower']) / (data['BB_Upper'] - data['BB_Upper'])
+        data['BB_Position'] = (data['Close'] - data['BB_Lower']) / (data['BB_Upper'] - data['BB_Lower'])
         
         #Momentum (% change over certain periods of time)
         data['Momentum_1M'] = data['Close'].pct_change(20)
@@ -151,7 +151,7 @@ class SimpleMLPredictor:
         """ Test the calculations"""
         try:
             stock = yf.Ticker(symbol)
-            hist_data = stock.history(period='1yr')
+            hist_data = stock.history(period='1y')
             
             
             if len(hist_data) < 150:
