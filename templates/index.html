@@ -29,6 +29,18 @@
                 <button type="submit">Add Stock</button>
             </form>
         </div>
+        <div class="train-section">
+            {% if not ml_predictor.is_trained %}
+                <form method="POST" action="/train_model">
+                    <button type="submit" style="background-color: #9b59b6;">🤖 Train AI Model</button>
+                </form>
+                <p style="font-size: 14px; color: #666; margin-top: 10px;">
+                    This will take a while......... data from 500 major stocks.
+                </p>
+            {% else %}
+                <p style="color: #27ae60; font-weight: bold;">✅ AI Model is trained and ready!</p>
+            {% endif %}
+        </div>
                     <!-- Refresh section -->
         {% if stocks %}
         <div class="refresh-section">
@@ -41,18 +53,43 @@
             {% if stocks %}
                 {% for stock in stocks %}
                     <div class="stock-item">
-                        <span>{{ stock.symbol }}</span>
-                        {% if stock.change.startswith('+') %}
-                            <span class="price-positive">{{ stock.price }}</span>
-                            <span class="price-positive">{{ stock.change }}</span>
-                        {% elif stock.change.startswith('-') %}
-                            <span class="price-negative">{{ stock.price }}</span>
-                            <span class="price-negative">{{ stock.change }}</span>
-                        {% else %}
-                            <span class="price-neutral">{{ stock.price }}</span>
-                            <span class="price-neutral">{{ stock.change }}</span>
+                        <div class="stock-basic">
+                            <span class="stock-symbol">{{ stock.symbol }}</span>
+                            {% if stock.change.startswith('+') %}
+                                <span class="price-positive">{{ stock.price }}</span>
+                                <span class="price-positive">{{ stock.change }}</span>
+                            {% elif stock.change.startswith('-') %}
+                                <span class="price-negative">{{ stock.price }}</span>
+                                <span class="price-negative">{{ stock.change }}</span>
+                            {% else %}
+                                <span class="price-neutral">{{ stock.price }}</span>
+                                <span class="price-neutral">{{ stock.change }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- ML Prediction Display -->
+                        {% if stock.ml_prediction %}
+                            <div class="ml-prediction">
+                                <div class="prediction-badge 
+                                    {% if 'BUY' in stock.ml_prediction.recommendation %}prediction-buy
+                                    {% elif 'SELL' in stock.ml_prediction.recommendation or 'AVOID' in stock.ml_prediction.recommendation %}prediction-sell
+                                    {% else %}prediction-hold{% endif %}">
+                                    🤖 {{ stock.ml_prediction.recommendation }}
+                                </div>
+                                <div class="prediction-details">
+                                    <small>{{ stock.ml_prediction.confidence }}% confident</small><br>
+                                    <small>{{ stock.ml_prediction.signal_strength }}</small>
+                                </div>
+                            </div>
+                        {% elif ml_predictor.is_trained %}
+                            <div class="ml-prediction">
+                                <span style="color: #999; font-size: 12px;">No ML prediction available</span>
+                            </div>
                         {% endif %}
-                        <a href="/remove/{{ stock.symbol }}" class="remove-btn">x</a>
+                        
+                        <div class="stock-actions">
+                            <a href="/remove_stock/{{ stock.symbol }}" style="color: #e74c3c; text-decoration: none;">❌</a>
+                        </div>
                     </div>
                 {% endfor %}
             {% else %}

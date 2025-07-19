@@ -25,33 +25,42 @@ STOCKS_FILE = 'stocks.json'
 
 
 def get_stock_data(symbol):
-    """ Get real data from YF"""
+    """Get real data from YF with ML prediction"""
     try:
         stock = yf.Ticker(symbol)
         info = stock.info
         
-        #Get Curr Price
+        # Get Current Price
         current_price = info.get('currentPrice') or info.get('regularMarketPrice')
         
-        #Get prev Close
+        # Get Previous Close
         previous_close = info.get('previousClose')
         
         if current_price and previous_close:
             change = current_price - previous_close
             change_percent = (change / previous_close) * 100
 
-            return {
-                'symbol' : symbol,
-                'price' : f"{current_price:.2f}",
-                'change' : f"{change:+.2f} ({change_percent:+.1f}%)",
-                'valid' : True   
+            stock_data = {
+                'symbol': symbol,
+                'price': f"{current_price:.2f}",
+                'change': f"{change:+.2f} ({change_percent:+.1f}%)",
+                'valid': True
             }
+            
+            # Get ML prediction if model is trained
+            if ml_predictor.is_trained:
+                ml_result = ml_predictor.predict_stock(symbol)
+                if ml_result:
+                    stock_data['ml_prediction'] = ml_result
+                    print(f"Added ML prediction for {symbol}: {ml_result['recommendation']}")
+            
+            return stock_data
         else:
             return {'valid': False, 'error': 'Could not fetch price data'}
     except Exception as e:
         return {'valid': False, 'error': f'Invalid symbol or API error: {str(e)}'}
     
-    
+
 def load_stocks():
     """Load stock symbols from file and fetch fresh data"""
     symbols = []
@@ -99,10 +108,57 @@ class SimpleMLPredictor:
         print("ML Model is initialized (No training yet)")
 
     def predict_stock(self, symbol):
-        """Placeholder for the moment for prediction"""
+        """Make a buy/sell/hold prediction for a stock"""
         if not self.is_trained:
+            print(f"Cannot predict {symbol} - model not trained")
             return None
-        return {"recommendation": "HOLD", 'confidence' : 50.0}
+            
+        # Get current features for the stock
+        features = self.create_features(symbol)
+        if features is None:
+            print(f"Cannot get features for {symbol}")
+            return None
+            
+        try:
+            # Convert features to array format
+            feature_array = np.array([list(features.values())]).reshape(1, -1)
+            
+            # Scale the features (same way we did in training)
+            feature_array_scaled = self.scaler.transform(feature_array)
+            
+            # Get prediction probabilities
+            # [probability_of_not_going_up, probability_of_going_up_5%+]
+            probabilities = self.classifier.predict_proba(feature_array_scaled)[0]
+            prob_down = probabilities[0]  # Probability of NOT going up 5%+
+            prob_up = probabilities[1]    # Probability of going up 5%+
+            
+            # Get binary prediction (0 or 1)
+            binary_prediction = self.classifier.predict(feature_array_scaled)[0]
+            
+            # Calculate confidence (how sure we are)
+            confidence = max(prob_down, prob_up) * 100
+            
+            print(f"{symbol}: P(up)={prob_up:.3f}, P(down)={prob_down:.3f}, Confidence={confidence:.1f}%")
+            
+            # Convert to recommendation
+            recommendation, signal_strength = self._interpret_prediction(
+                binary_prediction, prob_up, confidence, features
+            )
+            
+            return {
+                'recommendation': recommendation,
+                'confidence': round(confidence, 1),
+                'signal_strength': signal_strength,
+                'prob_up': round(prob_up * 100, 1),
+                'prob_down': round(prob_down * 100, 1),
+                'features': features
+            }
+            
+        except Exception as e:
+            print(f"Prediction error for {symbol}: {e}")
+            return None
+    
+    
     def calculate_technical_indicators(self,data):
         """Calculate key technical indicators"""
         print(f'Calculating indicators for {len(data)} datapoints')
@@ -146,7 +202,7 @@ class SimpleMLPredictor:
         print("All technical indicators calculated successfully")
         return data
     
-    ############ debug #################
+
     def test_indicators(self, symbol):
         """ Test the calculations"""
         try:
@@ -373,8 +429,8 @@ class SimpleMLPredictor:
                     # Only use if all features are valid
                     if all(not pd.isna(v) and abs(v) < 100 for v in features.values()):
                         all_features.append(list(features.values()))
-                        # Label: 1 if stock goes up 5%+ in 20 days, 0 otherwise
-                        all_labels.append(1 if future_return > 0.05 else 0)
+                        # Label: 1 if stock goes up 2%+ in 20 days, 0 otherwise
+                        all_labels.append(1 if future_return > 0.02 else 0)
             
             except Exception as e:
                 print(f"Error processing {ticker}: {e}")
@@ -396,7 +452,7 @@ class SimpleMLPredictor:
                 return False
             
             print(f"Training on {len(X)} examples")
-            print(f"Positive examples (stocks that went up 5%+): {sum(y)}")
+            print(f"Positive examples (stocks that went up 2%+): {sum(y)}")
             print(f"Negative examples: {len(y) - sum(y)}")
             
             # Initialize ML components
@@ -434,10 +490,30 @@ class SimpleMLPredictor:
         except Exception as e:
             print(f"Training error: {e}")
             return False
-
+    def _interpret_prediction(self, binary_pred, prob_up, confidence, features):
+        """Convert ML output to human-readable recommendation"""
+        
+        # Only make strong recommendations if we're confident
+        if confidence < 60:
+            return "HOLD", "Weak Signal"
+        
+        # Strong buy signals
+        if binary_pred == 1 and prob_up > 0.7:
+            return "STRONG BUY", "Strong Signal"
+        elif binary_pred == 1 and prob_up > 0.6:
+            return "BUY", "Moderate Signal"
+        
+        # Strong sell signals (or avoid buying)
+        elif binary_pred == 0 and prob_up < 0.3:
+            return "AVOID/SELL", "Strong Signal"
+        elif binary_pred == 0 and prob_up < 0.4:
+            return "HOLD/SELL", "Moderate Signal"
+        
+        # Everything else
+        else:
+            return "HOLD", "Neutral Signal"
 stocks = load_stocks()
 ml_predictor = SimpleMLPredictor()
-
 
 
 @app.route('/')
@@ -456,7 +532,7 @@ def index():
                 updated_stocks.append(stock)  # Keep old data if API fails
         stocks = updated_stocks
     
-    return render_template('index.html', stocks=stocks)
+    return render_template('index.html', stocks=stocks,  ml_predictor=ml_predictor)
 
 @app.route('/add_stock', methods=['POST'])
 def add_stock():
