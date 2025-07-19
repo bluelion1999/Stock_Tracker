@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import yfinance as yf
 import json
 import os
@@ -103,10 +103,58 @@ class SimpleMLPredictor:
         if not self.is_trained:
             return None
         return {"recommendation": "HOLD", 'confidence' : 50.0}
-    
-    
+    def calculate_technical_indicators(self,data):
+        """Calculate key technical indicators"""
+        print(f'Calculating indicators for {len(data)} datapoints')
+        
+        #Calculate 2 standard use SMAs
+        data['SMA_20'] = data['Close'].rolling(window=20).mean()
+        data['SMA_50'] = data['Close'].rolling(window=50).mean()
 
-
+        #Price to SMAs
+        data['Price_to_SMA20'] = data['Close'] / data['SMA_20']
+        data['Price_to_SMA50'] = data['Close'] / data['SMA_50']
+        
+        #RSI (momentum) 
+        delta = data['Close'].diff() #x_n - x_n-1 or daily change
+        gain = (delta.where(delta> 0,0)).rolling(window=14).mean() #time/amount in black
+        loss = (-delta.where(delta< 0,0)).rolling(window=14).mean() #time/amount in red
+        rs = gain/loss 
+        data['RSI'] = 100 - (100 / (1 + rs))
+        
+        print("Technical indicators calculated")
+        return data
+    
+    ############ debug #################
+    def test_indicators(self, symbol):
+        """ Test the calculations"""
+        try:
+            stock = yf.Ticker(symbol)
+            hist_data = stock.history(period='6mo')
+            
+            
+            if len(hist_data) < 50:
+                return f"Not enough data for {symbol}"
+            
+            hist_data = self.calculate_technical_indicators(hist_data)
+            
+            latest = hist_data.iloc[-1]
+            
+            result = {
+                'symbol': symbol,
+                'price': latest['Close'],
+                'sma_20': latest['SMA_20'],
+                'sma_50': latest['SMA_50'],
+                'price_to_sma20': latest['Price_to_SMA20'],
+                'price_to_sma50': latest['Price_to_SMA50'],
+                'rsi': latest['RSI']
+            }
+            
+            return result
+    
+        except Exception as e:
+            return f"Error: {e}"
+        
 stocks = load_stocks()
 ml_predictor = SimpleMLPredictor()
 
@@ -187,6 +235,11 @@ def refresh_prices():
 
     return redirect(url_for('index'))
 
+@app.route('/test_indicators/<symbol>')
+def test_indicators(symbol):
+    """Test"""
+    result = ml_predictor.test_indicators(symbol.upper())
+    return jsonify(result)
 
 # Run the app
 if __name__ == '__main__':
