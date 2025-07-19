@@ -3,6 +3,17 @@ import yfinance as yf
 import json
 import os
 
+import pandas
+import numpy
+from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings('ignore')
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import RobustScaler
+import joblib
+
+
 # Create Flask app instance
 app = Flask(__name__)
 
@@ -77,8 +88,29 @@ def save_stocks(stocks_data):
             json.dump(symbols, f, indent=2)
     except Exception as e:
         print(f"Error saving stocks: {e}")
+        
+# Begin ML
+
+class SimpleMLPredictor:
+    """ML predictor for Stock Recommendations"""
     
+    def __init__(self):
+        self.is_trained = False
+        print("ML Model is initialized (No training yet)")
+
+    def predict_stock(self, symbol):
+        """Placeholder for the moment for prediction"""
+        if not self.is_trained:
+            return None
+        return {"recommendation": "HOLD", 'confidence' : 50.0}
+    
+    
+
+
 stocks = load_stocks()
+ml_predictor = SimpleMLPredictor()
+
+
 
 @app.route('/')
 def index():
