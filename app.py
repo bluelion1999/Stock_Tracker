@@ -3,8 +3,8 @@ import yfinance as yf
 import json
 import os
 
-import pandas
-import numpy
+import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
@@ -229,6 +229,212 @@ class SimpleMLPredictor:
             
             
         return analysis
+    
+    def create_features(self, symbol):
+        """Create the ML features for a single stock"""
+        try:
+            stock = yf.Ticker(symbol)
+            hist_data = stock.history(period="1y")
+            
+            if len(hist_data) < 150:
+                return f"Insufficient Data to model {symbol}"
+
+            hist_data = self.calculate_technical_indicators(hist_data)
+            
+            latest = hist_data.iloc[-1]
+            
+            #feature_dict
+            features = {
+            'Price_to_SMA20': latest['Price_to_SMA20'],
+            'Price_to_SMA50': latest['Price_to_SMA50'],
+            'RSI': latest['RSI'],
+            'BB_Position': latest['BB_Position'],
+            'Momentum_1M': latest['Momentum_1M'],
+            'Momentum_3M': latest['Momentum_3M'],
+            'Momentum_6M': latest['Momentum_6M'],
+            'Volatility_20d': latest['Volatility_20d'],
+            'Volume_Ratio': latest['Volume_Ratio']
+            }
+            
+            #clean NaNs
+            features = {k: v if not pd.isna(v) else 0 for k, v in features.items()}
+            
+            return features
+        
+        except Exception as e:
+            print(f"Error creating features for {symbol}: {e}")
+            return None
+            
+    def prepare_training_data(self):
+        """Prepare training data for the model"""
+        print("Preparing training data")
+        
+        
+        # train ticks
+        train_tickers = [
+                        'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'CRM', 
+                        'ORCL', 'ADBE', 'INTC', 'AMD', 'CSCO', 'IBM', 'QCOM', 'AVGO', 'TXN', 'MU', 
+                        'AMAT', 'LRCX', 'KLAC', 'ADI', 'MCHP', 'XLNX', 'MRVL', 'SWKS', 'QRVO', 'SLAB', 
+                        'CRUS', 'CIRR', 'FORM', 'LITE', 'AMBA', 'SMTC', 'CCMP', 'DIOD', 'MKSI', 'ACLS', 
+                        'AEIS', 'COHR', 'VICR', 'POWI', 'MPWR', 'SIMO', 'MTSI', 'TRMB', 'KEYS', 'ANSS', 
+                        'CDNS', 'SNPS', 'ADSK', 'CTXS', 'SPLK', 'NOW', 'WDAY', 'VEEV', 'ZS', 'OKTA', 
+                        'CRWD', 'NET', 'DDOG', 'SNOW', 'PLTR', 'U', 'RBLX', 'DASH', 'ABNB', 'UBER', 
+                        'LYFT', 'TWLO', 'ZM', 'DOCN', 'GTLB', 'MDB', 'TEAM',
+                        'JNJ', 'PFE', 'UNH', 'ABBV', 'TMO', 'ABT', 'DHR', 'MRK', 'LLY', 'BMY', 
+                        'AMGN', 'GILD', 'BIIB', 'REGN', 'VRTX', 'CELG', 'ISRG', 'SYK', 'BSX', 'MDT', 
+                        'ZBH', 'EW', 'HOLX', 'VAR', 'ALGN', 'DXCM', 'ILMN', 'IQV', 'PKI', 'A', 
+                        'WST', 'MKTX', 'ZTS', 'IDXX', 'RMBS', 'PODD', 'TDOC', 'HALO', 'EDIT', 'CRSP', 
+                        'NTLA', 'BLUE', 'SRPT', 'RARE', 'FOLD', 'ARWR', 'BMRN', 'ALNY', 'IONS', 'EXAS', 
+                        'NVTA', 'CDNA', 'PACB', 'TWST', 'FATE', 'BEAM', 'PRIME', 'LYEL', 'SEER', 'MYGN',
+                        'BRK-A', 'BRK-B', 'JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'AXP', 'V', 
+                        'MA', 'PYPL', 'SQ', 'COF', 'USB', 'PNC', 'TFC', 'MTB', 'FITB', 'HBAN', 
+                        'RF', 'CFG', 'KEY', 'ZION', 'WTFC', 'CMA', 'SIVB', 'ALLY', 'SOFI', 'LC', 
+                        'UPST', 'AFRM', 'HOOD', 'COIN', 'MSTR', 'ICE', 'CME', 'NDAQ', 'CBOE', 'SPGI', 
+                        'MCO', 'BLK', 'SCHW', 'TROW', 'IVZ', 'BEN', 'STT', 'NTRS', 'AMG', 'WDR',
+                        'HD', 'MCD', 'NKE', 'SBUX', 'TJX', 'LOW', 'BKNG', 'DIS', 'CMCSA', 'CMG', 
+                        'YUM', 'QSR', 'ORLY', 'AZO', 'BBY', 'TGT', 'COST', 'WMT', 'KR', 'SYX', 
+                        'MHK', 'WHR', 'NVR', 'LEN', 'DHI', 'PHM', 'TOL', 'KBH', 'MTH', 'TPG', 
+                        'POOL', 'ULTA', 'EL', 'LULU', 'DECK', 'CROX', 'SKX', 'UAA', 'UA', 'FL', 
+                        'JWN', 'M', 'ROST', 'GPS', 'ANF',
+                        'PG', 'KO', 'PEP', 'MO', 'PM', 'BTI', 'UL', 'CL', 'KMB', 'GIS', 
+                        'K', 'CPB', 'CAG', 'SJM', 'HRL', 'TSN', 'MDLZ', 'MNST', 'KDP', 'STZ', 
+                        'DEO', 'SAM', 'TAP', 'BUD', 'HSY', 'MKC', 'SYY', 'ADM', 'BG', 'INGR',
+                        'XOM', 'CVX', 'COP', 'EOG', 'SLB', 'PXD', 'OXY', 'MPC', 'VLO', 'PSX', 
+                        'BKR', 'HAL', 'OIH', 'DVN', 'FANG', 'MRO', 'APA', 'HES', 'NOV', 'RIG', 
+                        'HP', 'CHK', 'AR', 'SM', 'WPX', 'MTDR', 'PE', 'QEP', 'NBL', 'COG', 
+                        'EQT', 'RRC', 'CNX', 'GPOR', 'WLL',
+                        'BA', 'CAT', 'GE', 'HON', 'MMM', 'UPS', 'RTX', 'LMT', 'NOC', 'GD', 
+                        'UNP', 'CSX', 'NSC', 'FDX', 'LUV', 'DAL', 'UAL', 'AAL', 'JBLU', 'ALK', 
+                        'WM', 'RSG', 'EMR', 'ETN', 'PH', 'ITW', 'DOV', 'ROK', 'CMI', 'DE', 
+                        'IR', 'CARR', 'OTIS', 'TDG', 'LDOS', 'HII', 'BWA', 'JCI', 'FAST', 'PCAR',
+                        'LIN', 'APD', 'SHW', 'ECL', 'DD', 'DOW', 'LYB', 'PPG', 'NEM', 'FCX', 
+                        'AA', 'VALE', 'BHP', 'RIO', 'CF', 'MOS', 'IFF', 'FMC', 'ALB', 'SQM', 
+                        'VMC', 'MLM', 'CRH', 'UFPI', 'PKG',
+                        'AMT', 'CCI', 'PLD', 'EQIX', 'PSA', 'EXR', 'WELL', 'O', 'VTR', 'HCP', 
+                        'UDR', 'EQR', 'AVB', 'ESS', 'MAA', 'CPT', 'AIV', 'BXP', 'VNO', 'SLG',
+                        'NEE', 'DUK', 'SO', 'D', 'AEP', 'EXC', 'XEL', 'SRE', 'PPL', 'ES', 
+                        'ETR', 'CMS', 'DTE', 'NI', 'LNT',
+                        'VZ', 'T', 'TMUS', 'CHTR', 'DISH', 'SIRI', 'TWTR', 'SNAP', 'PINS', 'MTCH', 
+                        'IAC', 'NWSA', 'NWS', 'FOXA', 'FOX',
+                        'BABA', 'JD', 'PDD', 'BIDU', 'NIO', 'XPEV', 'LI', 'TME', 'BILI', 'IQ', 
+                        'WB', 'NTES', 'TSM', 'ASML', 'SAP', 'NVO', 'AZN', 'RDS-A', 'RDS-B', 'BP', 
+                        'TM', 'HMC', 'NSANY', 'SNE', 'NVS', 'ROG', 'NESN', 'LVMUY', 'IDEXY', 'ADDYY',
+                        'ROKU', 'DOCU', 'ZI', 'FSLY', 'ESTC', 'FIVN', 'COUP', 'PD', 'PSTG', 'WORK', 
+                        'BILL', 'PAYC', 'SHOP', 'PTON', 'BYND', 'SPCE', 'OPEN', 'RDFN', 'Z', 'ZG', 
+                        'CARG', 'CVNA', 'CHWY', 'CHEWY', 'ETSY', 'PINS', 'TDOC', 'TELADOC', 'PELOTON', 'ZOOM',
+                        'PLUG', 'FCEL', 'BE', 'BLDP', 'NKLA', 'QS', 'LCID', 'RIVN', 'F', 'GM', 
+                        'RIDE', 'WKHS', 'HYLN', 'SHLL', 'VLDR', 'LAZR', 'MVIS', 'LIDR', 'OUST', 'AEVA', 
+                        'INVZ', 'AEYE', 'GMHI', 'ACTC', 'CCIV'
+                    ]
+        all_features = []
+        all_labels = []
+        
+        for ticker in train_tickers:
+            print(f"Processing {ticker}...")
+            
+            try:
+                import yfinance as yf
+                stock = yf.Ticker(ticker)
+                hist_data = stock.history(period="2y")  # 2 years for more training data
+                
+                if len(hist_data) < 200:
+                    print(f"Skipping {ticker} - not enough data")
+                    continue
+                    
+                # Calculate indicators
+                hist_data = self.calculate_technical_indicators(hist_data)
+                
+                # Create training examples from historical data
+                # We'll look at each day and see if the stock went up 5%+ in the next 20 days
+                for i in range(200, len(hist_data) - 20):  # Leave room for future returns
+                    current_row = hist_data.iloc[i]
+                    future_price = hist_data.iloc[i + 20]['Close']  # Price 20 days later
+                    current_price = current_row['Close']
+                    
+                    # Calculate future return
+                    future_return = (future_price - current_price) / current_price
+                    
+                    # Create features for this day
+                    features = {
+                        'Price_to_SMA20': current_row['Price_to_SMA20'],
+                        'Price_to_SMA50': current_row['Price_to_SMA50'],
+                        'RSI': current_row['RSI'],
+                        'BB_Position': current_row['BB_Position'],
+                        'Momentum_1M': current_row['Momentum_1M'],
+                        'Momentum_3M': current_row['Momentum_3M'],
+                        'Momentum_6M': current_row['Momentum_6M'],
+                        'Volatility_20d': current_row['Volatility_20d'],
+                        'Volume_Ratio': current_row['Volume_Ratio']
+                    }
+                    
+                    # Clean features
+                    features = {k: v if not pd.isna(v) else 0 for k, v in features.items()}
+                    
+                    # Only use if all features are valid
+                    if all(not pd.isna(v) and abs(v) < 100 for v in features.values()):
+                        all_features.append(list(features.values()))
+                        # Label: 1 if stock goes up 5%+ in 20 days, 0 otherwise
+                        all_labels.append(1 if future_return > 0.05 else 0)
+            
+            except Exception as e:
+                print(f"Error processing {ticker}: {e}")
+                continue
+        
+        print(f"Prepared {len(all_features)} training examples")
+        return np.array(all_features), np.array(all_labels)
+    
+    def train_model(self):
+        """Train the ML model"""
+        try:
+            print("Starting model training...")
+            
+            # Prepare training data
+            X, y = self.prepare_training_data()
+            
+            if len(X) < 100:
+                print("Not enough training data")
+                return False
+            
+            print(f"Training on {len(X)} examples")
+            print(f"Positive examples (stocks that went up 5%+): {sum(y)}")
+            print(f"Negative examples: {len(y) - sum(y)}")
+            
+            # Initialize ML components
+            self.scaler = RobustScaler()  # Scales features to handle outliers
+            self.classifier = RandomForestClassifier(
+                n_estimators=100,    # 100 decision trees
+                random_state=42,     # For reproducible results
+                max_depth=10,        # Prevent overfitting
+                min_samples_split=20 # Need 20+ samples to split a node
+            )
+            
+            # Scale the features (normalize them)
+            X_scaled = self.scaler.fit_transform(X)
+            
+            # Train the model
+            self.classifier.fit(X_scaled, y)
+            
+            # Test the model's accuracy
+            from sklearn.model_selection import cross_val_score
+            accuracy_scores = cross_val_score(self.classifier, X_scaled, y, cv=5)
+            avg_accuracy = accuracy_scores.mean()
+            
+            print(f"Model training complete!")
+            print(f"Cross-validation accuracy: {avg_accuracy:.1%}")
+            
+            # Store feature names for later reference
+            self.feature_names = [
+                'Price_to_SMA20', 'Price_to_SMA50', 'RSI', 'BB_Position',
+                'Momentum_1M', 'Momentum_3M', 'Momentum_6M', 'Volatility_20d', 'Volume_Ratio'
+            ]
+            
+            self.is_trained = True
+            return True
+            
+        except Exception as e:
+            print(f"Training error: {e}")
+            return False
+
 stocks = load_stocks()
 ml_predictor = SimpleMLPredictor()
 
@@ -315,6 +521,20 @@ def test_indicators(symbol):
     result = ml_predictor.test_indicators(symbol.upper())
     return jsonify(result)
 
+@app.route('/train_model', methods=['POST'])
+def train_model():
+    """Train the ML model"""
+    try:
+        success = ml_predictor.train_model()
+        
+        if success:
+            flash("ML model trained successfully! Accuracy information in console.", 'success')
+        else:
+            flash("Failed to train ML model. Check console for details.", 'error')
+    except Exception as e:
+        flash(f"Error training model: {str(e)}", 'error')
+    
+    return redirect(url_for('index'))
 # Run the app
 if __name__ == '__main__':
     app.run(debug=True)
