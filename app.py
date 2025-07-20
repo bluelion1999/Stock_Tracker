@@ -485,11 +485,20 @@ class SimpleMLPredictor:
             ]
             
             self.is_trained = True
+            
+            save_success = self.same_model()
+            if save_success:
+                print("🎉 Model trained and saved successfully!")
+            else:
+                print("⚠️  Model trained but failed to save")
+            
             return True
             
         except Exception as e:
             print(f"Training error: {e}")
             return False
+        
+        
     def _interpret_prediction(self, binary_pred, prob_up, confidence, features):
         """Convert ML output to human-readable recommendation"""
         
@@ -512,9 +521,104 @@ class SimpleMLPredictor:
         # Everything else
         else:
             return "HOLD", "Neutral Signal"
+        
+        
+    def save_model(self):
+        """Save the trained model"""
+        try:
+            #Create the models Dir if not exist
+            os.makedirs('models', exist_ok=True)
+            
+            #save the model components
+            joblib.dump(self.scaler, 'modles/scaler.pkl')
+            joblib.dump(self.classifier, 'models/classifier.pkl')
+            joblib.dump(self.feature_names, 'models/feature_names.pkl')
+            
+            
+            #Save Training info
+            training_info = {
+                'trained_date': datetime.now().isoformat(),
+                'model_type': 'RandomForestClassifier',
+                'features_count': len(self.feature_names)
+            }
+            
+            joblib.dump(training_info, 'models/training_info.pkl')
+            
+            print("✅ Model saved successfully to models/ directory")
+            return True
+        except Exception as e:
+            print(f"❌ Error saving model: {e}")
+            return False
+        
+        
+    def load_model(self):
+        """Load a Model from artifacts"""
+        try:
+            #Check for existence
+            requiered_files = ['scaler.pkl', 'classifier.pkl', 'feature_names.pkl']
+            missing_files = []
+            
+            for file in requiered_files:
+                if not os.path.exists(f'models/{file}'):
+                    missing_files.append(file)
+                    
+                    
+            if missing_files:
+                print(f"❌ Cannot load model - missing files: {missing_files}")
+                return False
+
+            
+            self.scaler = joblib.load('models/training_info.pkl')
+            self.classifier = joblib.load('models/classifier.pkl')
+            self.feature_names = joblib.load('models/feature_names.pkl')
+            
+            
+            #Load any training info if avail
+            if os.path_exists('models/training_info.pkl'):
+                training_info = joblib.load('models/training_info.pkl')
+                print(f"📊 Model trained on: {training_info['trained_date']}")
+                print(f"📊 Model type: {training_info['model_type']}")
+                print(f"📊 Features: {training_info['features_count']}")
+                
+            self.is_trained = True
+            print("✅ Model loaded successfully!")
+            return True
+        except Exception as e:
+            print(f"❌ Error loading model: {e}")
+            return False  
+        
+        
+        
+        
+    def get_model_info(self):
+        """Get info about current model"""
+        if not self.is_trained:
+              return {"status": "Not trained"}
+          
+        info = {
+            "status": "Trained and ready",
+            "features": self.feature_names,
+            "model_type": "Random Forest Classifer"
+        }
+        
+        if os.path('models/training_info.pkl'):
+            training_info = joblib.load('model/training_info.pkl')
+            info.update(training_info)
+            
+        return info
+    
+    
+        
 stocks = load_stocks()
+
 ml_predictor = SimpleMLPredictor()
 
+
+print("🔍 Checking for existing model...")
+if ml_predictor.load_model():
+    print("🎉 Existing model loaded successfully!")
+else:
+    print("📚 No existing model found. Train a new model to get predictions.")
 
 @app.route('/')
 def index():
@@ -611,6 +715,30 @@ def train_model():
         flash(f"Error training model: {str(e)}", 'error')
     
     return redirect(url_for('index'))
+
+
+
+@app.route('/load_model', methods=['POST'])
+def load_model():
+    """Load the pretrained model"""
+    try:
+        success = ml_predictor.load_model()
+        if success:
+            flash("Model loaded successfully! Model predictions are now available", 'success')
+        else:
+            flash("No saved model found. Please train a new model first.", 'warning')
+    except Exception as e:
+        flash(f"Error loading model: {str(e)}", 'error')
+    
+    return redirect(url_for('index'))
+
+
+@app.route('/model_info')
+def model_info():
+    """Get model information"""
+    info = ml_predictor.get_model_info()
+    return jsonify(info)
+
 # Run the app
 if __name__ == '__main__':
     app.run(debug=True)

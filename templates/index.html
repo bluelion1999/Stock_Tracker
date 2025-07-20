@@ -29,18 +29,56 @@
                 <button type="submit">Add Stock</button>
             </form>
         </div>
-        <div class="train-section">
-            {% if not ml_predictor.is_trained %}
-                <form method="POST" action="/train_model">
-                    <button type="submit" style="background-color: #9b59b6;">🤖 Train AI Model</button>
-                </form>
-                <p style="font-size: 14px; color: #666; margin-top: 10px;">
-                    This will take a while......... data from 500 major stocks.
-                </p>
+        <!-- Model Control Section -->
+        <div class="model-section">
+            {% if ml_predictor.is_trained %}
+                <div class="model-status-active">
+                    <span style="color: #27ae60; font-weight: bold;">✅ AI Model Active</span>
+                    <button onclick="showModelInfo()" style="background-color: #3498db; padding: 5px 10px; font-size: 12px;">
+                        📊 Model Info
+                    </button>
+                </div>
             {% else %}
-                <p style="color: #27ae60; font-weight: bold;">✅ AI Model is trained and ready!</p>
+                <div class="model-status-inactive">
+                    <span style="color: #e74c3c; font-weight: bold;">❌ AI Model Inactive</span>
+                    <div style="margin-top: 10px;">
+                        <form method="POST" action="/load_model" style="display: inline;">
+                            <button type="submit" style="background-color: #f39c12; margin-right: 10px;">
+                                📂 Load Saved Model
+                            </button>
+                        </form>
+                        <form method="POST" action="/train_model" style="display: inline;">
+                            <button type="submit" style="background-color: #9b59b6;">
+                                🤖 Train New Model
+                            </button>
+                        </form>
+                    </div>
+                    <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                        Load a saved model (instant) or train a new one (2-3 minutes)
+                    </p>
+                </div>
             {% endif %}
         </div>
+
+        <script>
+        function showModelInfo() {
+            fetch('/model_info')
+                .then(response => response.json())
+                .then(data => {
+                    let infoText = `Model Status: ${data.status}\n`;
+                    if (data.model_type) {
+                        infoText += `Type: ${data.model_type}\n`;
+                    }
+                    if (data.trained_date) {
+                        infoText += `Trained: ${new Date(data.trained_date).toLocaleString()}\n`;
+                    }
+                    if (data.features) {
+                        infoText += `Features: ${data.features.join(', ')}`;
+                    }
+                    alert(infoText);
+                });
+        }
+        </script>
                     <!-- Refresh section -->
         {% if stocks %}
         <div class="refresh-section">
