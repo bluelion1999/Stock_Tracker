@@ -1,3 +1,6 @@
+### Discalaimer 
+
+Nothing in this app is financial advice or should be taken as such. I have no accredidations nor is this project very accurate (atm).
 # Stock Tracker Flask App
 
 A simple web application built with Flask to track your favorite stocks with real-time market data. This is my first project to really attempt to increase my developing and coding skills. 
